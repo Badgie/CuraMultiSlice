@@ -1,0 +1,8 @@
+
+{
+    "name": "Multi Slice",
+    "author": "Jonas Krogh Hansen",
+    "version": "0.1",
+    "description": "Allows auto slicing and exporting of gcode in cura",
+    "supported_sdk_versions": ["7.3.0"]
+}
