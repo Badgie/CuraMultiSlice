@@ -28,12 +28,17 @@ UM.Dialog
         console.log(strList)
         for (var s in strList) {
             outputBox.append(strList[s])
-            outputScroll.updateScroll()
         }
+        outputBox.append("-----")
+        outputBox.append("Found " + strList.length + " files")
+        outputBox.append("Click Slice to start slicing")
+        outputScroll.updateScroll()
     }
 
     function applySettings() {
         manager.setFilePattern(regexText.text.toString())
+        manager.setFollowDirs(followCheckBox.checked)
+        manager.setFollowDepth(followDepthField.text.toString())
     }
 
     GridLayout {
@@ -62,7 +67,14 @@ UM.Dialog
                 TextArea {
                     id: regexText;
                     textFormat: TextEdit.PlainText
-                    placeholderText: "Regex"
+                    placeholderText: "regex"
+                    color: UM.Theme.getColor("text")
+
+                    background: Rectangle {
+                        color: UM.Theme.getColor("main_background")
+                        border.color: "black"
+                        implicitWidth: dialog.width * 0.45
+                    }
                 }
             }
 
@@ -117,10 +129,32 @@ UM.Dialog
             ColumnLayout {
                 id: checkBoxRow
 
-                CheckBox {
-                    id: followCheckBox
-                    text: "Follow directories"
-                    checked: false
+                RowLayout {
+                    CheckBox {
+                        id: followCheckBox
+                        text: "Follow directories"
+                        checked: false
+                    }
+
+                    Label {
+                        id: followDepthLabel
+                        text: "Max depth (default: 1):"
+                        visible: followCheckBox.checked
+                    }
+
+                    TextArea {
+                        id: followDepthField
+                        placeholderText: "depth"
+                        visible: followCheckBox.checked
+                        color: UM.Theme.getColor("text")
+
+                        background: Rectangle {
+                            color: UM.Theme.getColor("main_background")
+                            border.color: "black"
+                            implicitWidth: dialog.width * 0.05
+                        }
+                    }
+
                 }
             }
 
@@ -165,7 +199,7 @@ UM.Dialog
                     readOnly: true
                     textFormat: TextEdit.MarkdownText
                     text: "### Output log\n --- \n"
-                    color: "white"
+                    color: UM.Theme.getColor("text")
 
                     background: Rectangle {
                         color: UM.Theme.getColor("main_background")
