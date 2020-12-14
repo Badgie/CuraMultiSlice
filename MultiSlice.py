@@ -28,12 +28,9 @@ class MultiSlicePlugin(QObject, Extension):
         self._output_path = ''
         self._follow_dirs = False
         self._file_pattern = r'.*.stl'
+        self._follow_depth = 1
 
     def _createView(self):
-        """Creates the view used by show popup.
-        The view is saved because of the fairly aggressive garbage collection.
-        """
-        # Create the plugin dialog component
         path = os.path.join(
             cast(str, PluginRegistry.getInstance().getPluginPath("MultiSlice")),
             "MultiSliceView.qml")
@@ -59,8 +56,7 @@ class MultiSlicePlugin(QObject, Extension):
 
     @pyqtSlot(str)
     def setInputPath(self, path: str):
-        if path:
-            self._input_path = path
+        self._input_path = path
 
     @pyqtSlot(str)
     def setOutputPath(self, path: str):
@@ -73,8 +69,16 @@ class MultiSlicePlugin(QObject, Extension):
     @pyqtSlot(str)
     def setFilePattern(self, regex: str):
         if regex:
-            self._file_pattern = regex
+            try:
+                re.compile(regex)
+                self._file_pattern = regex
+            except re.error:
+                print(f'Regex string \"{regex}\" is invalid, using default: {self._file_pattern}')
 
-    @pyqtSlot()
-    def getFileModel(self):
-        return self._file_model
+    @pyqtSlot(str)
+    def setFollowDepth(self, depth: str):
+        if depth:
+            try:
+                self._follow_depth = int(depth)
+            except ValueError:
+                print(f'Depth value \"{depth}\" is invalid, using default: {self._follow_depth}')
