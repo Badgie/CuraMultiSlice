@@ -44,14 +44,23 @@ class MultiSlicePlugin(QObject, Extension):
         self._view.show()
 
     @pyqtProperty(list)
-    def files(self):
+    def files(self, abs_paths: bool = False):
         files = []
-        print(self._file_pattern)
-        print(self._follow_dirs)
-        for d in os.listdir(self._input_path):
-            if os.path.isdir(f'{self._input_path}/{d}'):
-                files += [x for x in os.listdir(f'{self._input_path}/{d}')
-                          if re.match(self._file_pattern, x)]
+
+        def _files(pattern: str, path: str, depth: int):
+            if depth > self._follow_depth:
+                return
+
+            for d in os.listdir(path):
+
+                if os.path.isdir(f'{path}/{d}'):
+                    _files(pattern, f'{path}/{d}', depth + 1)
+
+                if re.match(pattern, d):
+                    nonlocal files
+                    files.append(f'{path}/{d}' if abs_paths else d)
+
+        _files(self._file_pattern, self._input_path, 0)
         return files
 
     @pyqtSlot(str)
