@@ -142,7 +142,7 @@ UM.Dialog
 
                     Label {
                         id: followDepthLabel
-                        text: "Max depth (default: 1):"
+                        text: "Max depth (default: 0):"
                         visible: followCheckBox.checked
                     }
 

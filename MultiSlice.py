@@ -34,7 +34,7 @@ class MultiSlicePlugin(QObject, Extension):
         self._output_path = ''
         self._follow_dirs = False
         self._file_pattern = r'.*.stl'
-        self._follow_depth = 1
+        self._follow_depth = 0
 
         self._files = []
         self._current_model = ''
