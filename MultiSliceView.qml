@@ -14,7 +14,7 @@ UM.Dialog
 
     title: catalog.i18nc("@title:window", "Multi slicing");
     width: 1000 * screenScaleFactor;
-    height: 500 * screenScaleFactor;
+    height: 550 * screenScaleFactor;
     minimumWidth: 400 * screenScaleFactor;
     minimumHeight: 250 * screenScaleFactor;
     color: UM.Theme.getColor("main_background");
@@ -39,6 +39,7 @@ UM.Dialog
         manager.set_file_pattern(regexText.text.toString())
         manager.set_follow_dirs(followCheckBox.checked)
         manager.set_follow_depth(followDepthField.text.toString())
+        manager.set_preserve_dirs(preserveDirsCheckBox.checked)
     }
 
     function run() {
@@ -158,7 +159,13 @@ UM.Dialog
                             implicitWidth: dialog.width * 0.05
                         }
                     }
+                }
 
+                CheckBox {
+                    id: preserveDirsCheckBox
+                    text: "Preserve directories in output"
+                    visible: followCheckBox.checked
+                    checked: false
                 }
             }
 

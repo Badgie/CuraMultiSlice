@@ -1,6 +1,7 @@
 import os
 import re
 from typing import cast, Optional
+from pathlib import Path
 
 from UM.i18n import i18nCatalog
 from UM.Extension import Extension
@@ -12,7 +13,6 @@ from UM.Backend import Backend
 from cura.CuraApplication import CuraApplication
 
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtProperty, QUrl, QEventLoop, pyqtSignal
-from PyQt5.QtQuick import QQuickItem
 
 
 catalog = i18nCatalog("cura")
@@ -33,6 +33,7 @@ class MultiSlicePlugin(QObject, Extension):
         self._input_path = ''
         self._output_path = ''
         self._follow_dirs = False
+        self._preserve_dirs = False
         self._file_pattern = r'.*.stl'
         self._follow_depth = 0
 
@@ -120,6 +121,10 @@ class MultiSlicePlugin(QObject, Extension):
     @pyqtSlot(bool)
     def set_follow_dirs(self, follow: bool):
         self._follow_dirs = follow
+
+    @pyqtSlot(bool)
+    def set_preserve_dirs(self, preserve: bool):
+        self._preserve_dirs = preserve
 
     @pyqtSlot(str)
     def set_file_pattern(self, regex: str):
@@ -224,9 +229,20 @@ class MultiSlicePlugin(QObject, Extension):
         """
         if state == 3:
             file_name = self._current_model_name.replace('.stl', '.gcode')
+
+            if self._preserve_dirs:
+                rel_path = self._current_model.replace(self._input_path, '')
+                path = '/'.join(x for x in f'{self._output_path}/{rel_path}'.split('/')[:-1])
+                Path(path).mkdir(parents=True, exist_ok=True)
+            else:
+                path = self._output_path
+
             self._log_msg(f'Writing gcode to file {file_name}')
-            with open(f'{self._output_path}/{file_name}', 'w') as stream:
+            self._log_msg(f'Saving to directory: {path}')
+
+            with open(f'{path}/{file_name}', 'w') as stream:
                 res = PluginRegistry.getInstance().getPluginObject("GCodeWriter").write(stream, [])
+
             if res:
                 self._write_done.emit()
 
