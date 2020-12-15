@@ -11,7 +11,8 @@ from UM.Backend import Backend
 
 from cura.CuraApplication import CuraApplication
 
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtProperty, QUrl, QEventLoop
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtProperty, QUrl, QEventLoop, pyqtSignal
+from PyQt5.QtQuick import QQuickItem
 
 
 catalog = i18nCatalog("cura")
@@ -45,14 +46,23 @@ class MultiSlicePlugin(QObject, Extension):
         # event loop that allows us to wait for a signal
         self._loop = QEventLoop()
 
+    # signal to handle output log messages
+    log = pyqtSignal(str, name='log')
+
+    def _log_msg(self, msg: str):
+        """
+        Emits a message to the logger signal
+        """
+        self.log.emit(msg)
+
     def _create_view(self):
         """
         Create plugin view dialog
         """
         path = os.path.join(
-            cast(str, PluginRegistry.getInstance().getPluginPath("MultiSlice")),
-            "MultiSliceView.qml")
-        self._view = CuraApplication.getInstance().createQmlComponent(path, {"manager": self})
+            cast(str, PluginRegistry.getInstance().getPluginPath('MultiSlice')),
+            'MultiSliceView.qml')
+        self._view = CuraApplication.getInstance().createQmlComponent(path, {'manager': self})
 
     def _show_popup(self):
         """
@@ -91,10 +101,6 @@ class MultiSlicePlugin(QObject, Extension):
         _files(self._file_pattern, self._input_path, 0)
         return files
 
-    @pyqtProperty(Signal)
-    def ready(self):
-        return self._ready
-
     @pyqtProperty(list)
     def files_names(self):
         return self._get_files()
@@ -122,7 +128,8 @@ class MultiSlicePlugin(QObject, Extension):
                 re.compile(regex)
                 self._file_pattern = regex
             except re.error:
-                print(f'Regex string \"{regex}\" is invalid, using default: {self._file_pattern}')
+                self._log_msg(f'Regex string \"{regex}\" is invalid, using default: '
+                              f'{self._file_pattern}')
 
     @pyqtSlot(str)
     def set_follow_depth(self, depth: str):
@@ -130,14 +137,16 @@ class MultiSlicePlugin(QObject, Extension):
             try:
                 self._follow_depth = int(depth)
             except ValueError:
-                print(f'Depth value \"{depth}\" is invalid, using default: {self._follow_depth}')
+                self._log_msg(f'Depth value \"{depth}\" is invalid, using default: '
+                              f'{self._follow_depth}')
 
     @pyqtSlot()
     def prepare_and_run(self):
         """
         Do initial setup for running and start
         """
-        self._files = self.filesPaths
+        self._files = self.files_paths
+        self._log_msg(f'Found {len(self._files)} files')
         self._current_model = self._files.pop()
         self._current_model_name = self._current_model.split('/')[-1]
         self._current_model_url = QUrl().fromLocalFile(self._current_model)
@@ -160,6 +169,7 @@ class MultiSlicePlugin(QObject, Extension):
         if len(self._files) == 0:
             self._current_model = None
         else:
+            self._log_msg(f'{len(self._files)} file(s) to go')
             self._current_model = self._files.pop()
             self._current_model_name = self._current_model.split('/')[-1]
             self._current_model_url = QUrl().fromLocalFile(self._current_model)
@@ -174,20 +184,22 @@ class MultiSlicePlugin(QObject, Extension):
         """
         Run subsequent iterations
         """
+        self._log_msg('Clearing build plate and preparing next model')
         self._clear_models()
         self._prepare_next()
 
         if not self._current_model:
+            self._log_msg('Found no more models. Done!')
             # reset signal connectors once all models are done
             self.__reset()
             return
-
         self._load_model_and_slice()
 
     def _load_model_and_slice(self):
         """
         Read .stl file into Cura and wait for fileCompleted signal
         """
+        self._log_msg(f'Loading model {self._current_model_name}')
         CuraApplication.getInstance().readLocalFile(self._current_model_url)
         self._loop.exec()
 
@@ -202,6 +214,7 @@ class MultiSlicePlugin(QObject, Extension):
         Begin slicing models on build plate and wait for backendStateChange to signal state 3,
         i.e. processing done
         """
+        self._log_msg('Slicing...')
         CuraApplication.getInstance().backend.forceSlice()
         self._loop.exec()
 
@@ -210,7 +223,9 @@ class MultiSlicePlugin(QObject, Extension):
         Write sliced model to file in output dir and emit signal once done
         """
         if state == 3:
-            with open(f'{self._output_path}/{self._current_model_name}', 'w') as stream:
+            file_name = self._current_model_name.replace('.stl', '.gcode')
+            self._log_msg(f'Writing gcode to file {file_name}')
+            with open(f'{self._output_path}/{file_name}', 'w') as stream:
                 res = PluginRegistry.getInstance().getPluginObject("GCodeWriter").write(stream, [])
             if res:
                 self._write_done.emit()

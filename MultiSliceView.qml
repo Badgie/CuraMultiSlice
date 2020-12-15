@@ -31,6 +31,7 @@ UM.Dialog
         outputBox.append("-----")
         outputBox.append("Found " + strList.length + " files")
         outputBox.append("Click Slice to start slicing")
+        outputBox.append("-----")
         outputScroll.updateScroll()
     }
 
@@ -200,11 +201,19 @@ UM.Dialog
                     ScrollBar.vertical.increase()
                 }
 
+                Connections {
+                    target: manager
+                    function onLog(msg) {
+                        outputBox.append(msg)
+                        outputScroll.updateScroll()
+                    }
+                }
+
                 TextArea {
                     id: outputBox
                     readOnly: true
-                    textFormat: TextEdit.MarkdownText
-                    text: "### Output log\n --- \n"
+                    textFormat: TextEdit.PlainText
+                    text: "Output log\n ----- "
                     color: UM.Theme.getColor("text")
 
                     background: Rectangle {
