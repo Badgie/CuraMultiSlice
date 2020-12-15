@@ -35,9 +35,9 @@ UM.Dialog
     }
 
     function applySettings() {
-        manager.setFilePattern(regexText.text.toString())
-        manager.setFollowDirs(followCheckBox.checked)
-        manager.setFollowDepth(followDepthField.text.toString())
+        manager.set_file_pattern(regexText.text.toString())
+        manager.set_follow_dirs(followCheckBox.checked)
+        manager.set_follow_depth(followDepthField.text.toString())
     }
 
     function run() {
@@ -172,7 +172,7 @@ UM.Dialog
                         text: "Check files"
                         onClicked: {
                             applySettings()
-                            appendOutput(manager.filesNames)
+                            appendOutput(manager.files_names)
                         }
                     }
 
@@ -228,7 +228,7 @@ UM.Dialog
             folder: StandardPaths.HomeLocation
             onAccepted: {
                 outputDirChoiceRowText.text = trimPath(selectOutputDirectoryDialog.folder.toString())
-                manager.setOutputPath(trimPath(selectOutputDirectoryDialog.folder.toString()))
+                manager.set_output_path(trimPath(selectOutputDirectoryDialog.folder.toString()))
             }
         }
     }
@@ -243,7 +243,7 @@ UM.Dialog
             folder: StandardPaths.HomeLocation
             onAccepted: {
                 inputDirChoiceRowText.text = trimPath(selectInputDirectoryDialog.folder.toString())
-                manager.setInputPath(trimPath(selectInputDirectoryDialog.folder.toString()))
+                manager.set_input_path(trimPath(selectInputDirectoryDialog.folder.toString()))
             }
         }
     }
