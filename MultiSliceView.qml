@@ -25,7 +25,6 @@ UM.Dialog
     }
 
     function appendOutput(strList) {
-        console.log(strList)
         for (var s in strList) {
             outputBox.append(strList[s])
         }
@@ -39,6 +38,10 @@ UM.Dialog
         manager.setFilePattern(regexText.text.toString())
         manager.setFollowDirs(followCheckBox.checked)
         manager.setFollowDepth(followDepthField.text.toString())
+    }
+
+    function run() {
+        manager.prepare_and_run()
     }
 
     GridLayout {
@@ -169,13 +172,17 @@ UM.Dialog
                         text: "Check files"
                         onClicked: {
                             applySettings()
-                            appendOutput(manager.files)
+                            appendOutput(manager.filesNames)
                         }
                     }
 
                     Button {
                         id: sliceButton
                         text: "Slice"
+                        onClicked: {
+                            applySettings()
+                            run()
+                        }
                     }
                 }
             }
@@ -192,7 +199,6 @@ UM.Dialog
                     ScrollBar.vertical.position = 1.0
                     ScrollBar.vertical.increase()
                 }
-
 
                 TextArea {
                     id: outputBox
