@@ -37,6 +37,8 @@ class MultiSlicePlugin(QObject, Extension):
         self._file_pattern = r'.*.stl'
         self._follow_depth = 0
 
+        self._validation_errors = False
+
         self._files = []
         self._current_model = ''
         self._current_model_name = ''
@@ -55,6 +57,15 @@ class MultiSlicePlugin(QObject, Extension):
         Emits a message to the logger signal
         """
         self.log.emit(msg)
+
+    # signal to handle error messages
+    error = pyqtSignal(str, name='error')
+
+    def _send_error(self, msg: str):
+        """
+        Emits an error message to display in an error popup
+        """
+        self.error.emit(msg)
 
     def _create_view(self):
         """
@@ -82,6 +93,9 @@ class MultiSlicePlugin(QObject, Extension):
 
         :param abs_paths: whether or not to collect absolute paths
         """
+        if self._validation_errors:
+            return
+
         files = []
 
         def _files(pattern: str, path: str, depth: int):
@@ -104,19 +118,29 @@ class MultiSlicePlugin(QObject, Extension):
 
     @pyqtProperty(list)
     def files_names(self):
-        return self._get_files()
+        return self._get_files() or []
 
     @pyqtProperty(list)
     def files_paths(self):
-        return self._get_files(abs_paths=True)
+        return self._get_files(abs_paths=True) or []
 
     @pyqtSlot(str)
     def set_input_path(self, path: str):
-        self._input_path = path
+        if not path:
+            self._send_error(f'Input path \"{path}\" is not a valid path. Please try again.')
+            self._validation_errors = True
+        else:
+            self._input_path = path
+            self._validation_errors = False
 
     @pyqtSlot(str)
     def set_output_path(self, path: str):
-        self._output_path = path
+        if not path:
+            self._send_error(f'Output path \"{path}\" is not a valid path. Please try again.')
+            self._validation_errors = True
+        else:
+            self._output_path = path
+            self._validation_errors = False
 
     @pyqtSlot(bool)
     def set_follow_dirs(self, follow: bool):
@@ -132,6 +156,7 @@ class MultiSlicePlugin(QObject, Extension):
             try:
                 re.compile(regex)
                 self._file_pattern = regex
+                self._validation_errors = False
             except re.error:
                 self._log_msg(f'Regex string \"{regex}\" is invalid, using default: '
                               f'{self._file_pattern}')
@@ -141,6 +166,7 @@ class MultiSlicePlugin(QObject, Extension):
         if depth:
             try:
                 self._follow_depth = int(depth)
+                self._validation_errors = False
             except ValueError:
                 self._log_msg(f'Depth value \"{depth}\" is invalid, using default: '
                               f'{self._follow_depth}')
@@ -151,6 +177,10 @@ class MultiSlicePlugin(QObject, Extension):
         Do initial setup for running and start
         """
         self._files = self.files_paths
+
+        if len(self._files) is 0:
+            return
+
         self._log_msg(f'Found {len(self._files)} files')
         self._current_model = self._files.pop()
         self._current_model_name = self._current_model.split('/')[-1]

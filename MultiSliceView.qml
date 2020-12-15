@@ -25,6 +25,11 @@ UM.Dialog
     }
 
     function appendOutput(strList) {
+        if (strList.length == 0) {
+            outputBox.append("Found 0 files, please try again")
+            return
+        }
+
         for (var s in strList) {
             outputBox.append(strList[s])
         }
@@ -40,10 +45,24 @@ UM.Dialog
         manager.set_follow_dirs(followCheckBox.checked)
         manager.set_follow_depth(followDepthField.text.toString())
         manager.set_preserve_dirs(preserveDirsCheckBox.checked)
+        manager.set_input_path(trimPath(selectInputDirectoryDialog.folder.toString()))
+        manager.set_output_path(trimPath(selectOutputDirectoryDialog.folder.toString()))
     }
 
     function run() {
         manager.prepare_and_run()
+    }
+
+    Item {
+        Connections {
+            target: manager
+            function onError(msg) {
+                if (errorPopupText.text === "") {
+                    errorPopupText.text = msg
+                    errorPopup.open()
+                }
+            }
+        }
     }
 
     GridLayout {
@@ -220,8 +239,9 @@ UM.Dialog
                     id: outputBox
                     readOnly: true
                     textFormat: TextEdit.PlainText
-                    text: "Output log\n ----- "
+                    text: "Output log\n-----"
                     color: UM.Theme.getColor("text")
+                    wrapMode: TextEdit.WordWrap
 
                     background: Rectangle {
                         color: UM.Theme.getColor("main_background")
@@ -244,7 +264,6 @@ UM.Dialog
             folder: StandardPaths.HomeLocation
             onAccepted: {
                 outputDirChoiceRowText.text = trimPath(selectOutputDirectoryDialog.folder.toString())
-                manager.set_output_path(trimPath(selectOutputDirectoryDialog.folder.toString()))
             }
         }
     }
@@ -259,7 +278,42 @@ UM.Dialog
             folder: StandardPaths.HomeLocation
             onAccepted: {
                 inputDirChoiceRowText.text = trimPath(selectInputDirectoryDialog.folder.toString())
-                manager.set_input_path(trimPath(selectInputDirectoryDialog.folder.toString()))
+            }
+        }
+    }
+
+    Item {
+        // error popup
+        Popup {
+            id: errorPopup
+            width: dialog.width * 0.5
+            height: dialog.height * 0.2
+            x: errorPopup.width / 2
+            y: errorPopup.height / 2
+
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+            onClosed: {
+                errorPopupText.text = ""
+            }
+
+            contentItem: ColumnLayout {
+
+                Text {
+                    id: errorPopupText
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
+                    text: ""
+                }
+
+                Button {
+                    id: popupCloseButton
+                    text: "Close"
+                    Layout.alignment: Qt.AlignHCenter
+                    onClicked: {
+                        errorPopup.close()
+                    }
+                }
             }
         }
     }
