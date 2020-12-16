@@ -49,7 +49,7 @@ The file name pattern should be a regex that defines the name of the files that 
 Leaving this field blank will default to using `.*.stl`, i.e. every file found with the `.stl` suffix.
 
 ### Root directory
-The input directory is the directory to search for files in.
+The root directory is the directory to search for files in.
 
 ### Output directory
 The output directory is where the `.gcode` files are written to.
