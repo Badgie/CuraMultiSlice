@@ -20,11 +20,14 @@ UM.Dialog
     color: UM.Theme.getColor("main_background");
     margin: screenScaleFactor * 20
 
+    // remove the url bit of the input path - for output formatting
     function trimPath(path) {
         return path.replace("file://", "")
     }
 
+    // append a list of strings to the output log - used to print a list of file names
     function appendOutput(strList) {
+        // if we don't have any elements, notify and return
         if (strList.length == 0) {
             outputBox.append("Found 0 files, please try again")
             outputBox.append("-----")
@@ -34,13 +37,16 @@ UM.Dialog
         for (var s in strList) {
             outputBox.append(strList[s])
         }
+
         outputBox.append("-----")
         outputBox.append("Found " + strList.length + " files")
         outputBox.append("Click Slice to start slicing")
         outputBox.append("-----")
+
         outputScroll.updateScroll()
     }
 
+    // apply all settings applied in the GUI and try to validate
     function applySettings() {
         manager.set_file_pattern(regexText.text.toString())
         manager.set_follow_dirs(followCheckBox.checked)
@@ -51,14 +57,17 @@ UM.Dialog
         return manager.validate_input
     }
 
+    // main runner
     function run() {
         manager.prepare_and_run()
     }
 
     Item {
+        // custom signal connections
         Connections {
             target: manager
 
+            // on error signals, set the message as the text on the error popup and display it
             function onError(msg) {
                 if (errorPopupText.text === "") {
                     errorPopupText.text = msg
@@ -66,6 +75,7 @@ UM.Dialog
                 }
             }
 
+            // on log signals, append the message to the output log
             function onLog(msg) {
                 outputBox.append(msg)
                 outputScroll.updateScroll()
@@ -180,6 +190,8 @@ UM.Dialog
                         placeholderText: "depth"
                         visible: followCheckBox.checked
                         color: UM.Theme.getColor("text")
+                        // if top is set to 10, any two digit number is valid input
+                        // also avoids recursion exceptions
                         validator: IntValidator {bottom: 0; top: 9;}
 
                         background: Rectangle {
@@ -224,6 +236,7 @@ UM.Dialog
             }
         }
 
+        // output log segment
         ColumnLayout {
             ScrollView {
                 id: outputScroll
@@ -232,6 +245,12 @@ UM.Dialog
                 clip: true
 
                 function updateScroll() {
+                    /*
+                        set the scroll view position to the end of the contents
+
+                        without the increase() call it will scroll past the text - the call ensures
+                        that the last line of the text is always at the bottom
+                    */
                     ScrollBar.vertical.position = 1.0
                     ScrollBar.vertical.increase()
                 }
@@ -257,6 +276,7 @@ UM.Dialog
 
     Item {
         // needs to be in Item otherwise the qml loader dies
+        // output directory selection
         FileDialog {
             id: selectOutputDirectoryDialog
             title: "Select directory"
@@ -275,6 +295,7 @@ UM.Dialog
 
     Item {
         // needs to be in Item otherwise the qml loader dies
+        // input directory selection
         FileDialog {
             id: selectInputDirectoryDialog
             title: "Select directory"
