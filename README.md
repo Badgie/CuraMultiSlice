@@ -62,6 +62,8 @@ Checking this option will enable two more options; *Max depth* and *Preserve dir
 #### Max depth
 The *Max depth* field will take an integer between 0 and 9 (inclusive). This value denotes the maximum depth of nested directories that MultiSlice will traverse.
 
+Leaving this field blank will default to using 0, i.e. only the root directory will be searched.
+
 #### Preserve directories in output
 The *Preserve directories in output* checkbox will enable/disable preserving the same directory structure in the output directory as it was in the root directory.
 
