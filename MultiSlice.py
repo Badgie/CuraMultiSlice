@@ -30,15 +30,16 @@ class MultiSlicePlugin(QObject, Extension):
 
         self._view = None
 
-        self._input_path = ''
-        self._output_path = ''
+        self._input_path = ''  # type: Optional[Path, str]
+        self._output_path = ''  # type: Optional[Path, str]
         self._follow_dirs = False
         self._preserve_dirs = False
         self._file_pattern = r'.*.stl'
         self._follow_depth = 0  # type: Optional[int]
 
         self._files = []
-        self._current_model = ''
+        self._current_model = ''  # type: Optional[Path, str]
+        self._current_model_suffix = ''
         self._current_model_name = ''
         self._current_model_url = None  # type: Optional[QUrl]
 
@@ -93,23 +94,23 @@ class MultiSlicePlugin(QObject, Extension):
         """
         files = []
 
-        def _files(pattern: str, path: str, depth: int):
+        def _files(pattern: str, path: Path, depth: int):
             # skip if we exceeded recursion depth
             if depth > self._follow_depth:
                 return
 
             try:
-                for d in os.listdir(path):
+                for d in path.iterdir():
 
                     # if we reached a directory, do recursive call
-                    if os.path.isdir(f'{path}/{d}'):
-                        _files(pattern, f'{path}/{d}', depth + 1)
+                    if d.is_dir():
+                        _files(pattern, d, depth + 1)
                     # if we reached a file, check if it matches file pattern and add to list if so
-                    elif re.match(pattern, d):
+                    elif d.is_file() and re.match(pattern, d.name):
                         nonlocal files
-                        files.append(f'{path}/{d}' if abs_paths else d)
+                        files.append(d if abs_paths else d.name)
             except PermissionError:
-                self._log_msg(f'Could not access directory {path}, reason: permission denied. '
+                self._log_msg(f'Could not access directory {str(path)}, reason: permission denied. '
                               f'Skipping.')
                 return
 
@@ -127,12 +128,12 @@ class MultiSlicePlugin(QObject, Extension):
     @pyqtSlot(str)
     def set_input_path(self, path: str):
         if path and os.path.isdir(path):
-            self._input_path = path
+            self._input_path = Path(path)
 
     @pyqtSlot(str)
     def set_output_path(self, path: str):
         if path and os.path.isdir(path):
-            self._output_path = path
+            self._output_path = Path(path)
 
     @pyqtSlot(bool)
     def set_follow_dirs(self, follow: bool):
@@ -161,12 +162,12 @@ class MultiSlicePlugin(QObject, Extension):
                              f'Please try again.')
             return False
 
-        if not self._input_path or not os.path.isdir(self._input_path):
+        if type(self._input_path) is str or not self._input_path.is_dir():
             self._send_error(f'Input path \"{self._input_path}\" is not a valid path. '
                              f'Please try again.')
             return False
 
-        if not self._output_path or not os.path.isdir(self._output_path):
+        if type(self._output_path) is str or not self._output_path.is_dir():
             self._send_error(f'Output path \"{self._output_path}\" is not a valid path. '
                              f'Please try again.')
             return False
@@ -193,9 +194,7 @@ class MultiSlicePlugin(QObject, Extension):
             return
 
         self._log_msg(f'Found {len(self._files)} files')
-        self._current_model = self._files.pop()
-        self._current_model_name = self._current_model.split('/')[-1]
-        self._current_model_url = QUrl().fromLocalFile(self._current_model)
+        self._prepare_model()
 
         # slice when model is loaded
         CuraApplication.getInstance().fileCompleted.connect(self._slice)
@@ -216,9 +215,13 @@ class MultiSlicePlugin(QObject, Extension):
             self._current_model = None
         else:
             self._log_msg(f'{len(self._files)} file(s) to go')
-            self._current_model = self._files.pop()
-            self._current_model_name = self._current_model.split('/')[-1]
-            self._current_model_url = QUrl().fromLocalFile(self._current_model)
+            self._prepare_model()
+
+    def _prepare_model(self):
+        self._current_model = self._files.pop()
+        self._current_model_suffix = self._current_model.suffix
+        self._current_model_name = self._current_model.name
+        self._current_model_url = QUrl().fromLocalFile(str(self._current_model))
 
     def _run(self):
         """
@@ -269,19 +272,19 @@ class MultiSlicePlugin(QObject, Extension):
         Write sliced model to file in output dir and emit signal once done
         """
         if state == 3:
-            file_name = self._current_model_name.replace('.stl', '.gcode')
+            file_name = self._current_model_name.replace(self._current_model_suffix, '.gcode')
 
             if self._preserve_dirs:
-                rel_path = self._current_model.replace(self._input_path, '')
-                path = '/'.join(x for x in f'{self._output_path}/{rel_path}'.split('/')[:-1])
-                Path(path).mkdir(parents=True, exist_ok=True)
+                rel_path = self._current_model.relative_to(self._input_path)
+                path = (self._output_path / rel_path).parent / file_name
+                path.parent.mkdir(parents=True, exist_ok=True)
             else:
-                path = self._output_path
+                path = self._output_path / file_name
 
             self._log_msg(f'Writing gcode to file {file_name}')
-            self._log_msg(f'Saving to directory: {path}')
+            self._log_msg(f'Saving to directory: {str(path)}')
 
-            with open(f'{path}/{file_name}', 'w') as stream:
+            with path.open(mode='w') as stream:
                 res = PluginRegistry.getInstance().getPluginObject("GCodeWriter").write(stream, [])
 
             if res:
