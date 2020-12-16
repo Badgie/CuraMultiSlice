@@ -1,6 +1,6 @@
 import os
 import re
-from typing import cast, Optional
+from typing import cast, Optional, List
 from pathlib import Path
 
 from UM.i18n import i18nCatalog
@@ -35,9 +35,7 @@ class MultiSlicePlugin(QObject, Extension):
         self._follow_dirs = False
         self._preserve_dirs = False
         self._file_pattern = r'.*.stl'
-        self._follow_depth = 0
-
-        self._validation_errors = False
+        self._follow_depth = 0  # type: Optional[int]
 
         self._files = []
         self._current_model = ''
@@ -93,9 +91,6 @@ class MultiSlicePlugin(QObject, Extension):
 
         :param abs_paths: whether or not to collect absolute paths
         """
-        if self._validation_errors:
-            return
-
         files = []
 
         def _files(pattern: str, path: str, depth: int):
@@ -103,15 +98,20 @@ class MultiSlicePlugin(QObject, Extension):
             if depth > self._follow_depth:
                 return
 
-            for d in os.listdir(path):
+            try:
+                for d in os.listdir(path):
 
-                # if we reached a directory, do recursive call
-                if os.path.isdir(f'{path}/{d}'):
-                    _files(pattern, f'{path}/{d}', depth + 1)
-                # if we reached a file, check if it matches file pattern and add to list if so
-                elif re.match(pattern, d):
-                    nonlocal files
-                    files.append(f'{path}/{d}' if abs_paths else d)
+                    # if we reached a directory, do recursive call
+                    if os.path.isdir(f'{path}/{d}'):
+                        _files(pattern, f'{path}/{d}', depth + 1)
+                    # if we reached a file, check if it matches file pattern and add to list if so
+                    elif re.match(pattern, d):
+                        nonlocal files
+                        files.append(f'{path}/{d}' if abs_paths else d)
+            except PermissionError:
+                self._log_msg(f'Could not access directory {path}, reason: permission denied. '
+                              f'Skipping.')
+                return
 
         _files(self._file_pattern, self._input_path, 0)
         return files
@@ -126,21 +126,13 @@ class MultiSlicePlugin(QObject, Extension):
 
     @pyqtSlot(str)
     def set_input_path(self, path: str):
-        if not path:
-            self._send_error(f'Input path \"{path}\" is not a valid path. Please try again.')
-            self._validation_errors = True
-        else:
+        if path and os.path.isdir(path):
             self._input_path = path
-            self._validation_errors = False
 
     @pyqtSlot(str)
     def set_output_path(self, path: str):
-        if not path:
-            self._send_error(f'Output path \"{path}\" is not a valid path. Please try again.')
-            self._validation_errors = True
-        else:
+        if path and os.path.isdir(path):
             self._output_path = path
-            self._validation_errors = False
 
     @pyqtSlot(bool)
     def set_follow_dirs(self, follow: bool):
@@ -153,23 +145,40 @@ class MultiSlicePlugin(QObject, Extension):
     @pyqtSlot(str)
     def set_file_pattern(self, regex: str):
         if regex:
-            try:
-                re.compile(regex)
-                self._file_pattern = regex
-                self._validation_errors = False
-            except re.error:
-                self._log_msg(f'Regex string \"{regex}\" is invalid, using default: '
-                              f'{self._file_pattern}')
+            self._file_pattern = regex
 
     @pyqtSlot(str)
     def set_follow_depth(self, depth: str):
         if depth:
-            try:
-                self._follow_depth = int(depth)
-                self._validation_errors = False
-            except ValueError:
-                self._log_msg(f'Depth value \"{depth}\" is invalid, using default: '
-                              f'{self._follow_depth}')
+            self._follow_depth = depth
+
+    @pyqtProperty(bool)
+    def validate_input(self):
+        try:
+            re.compile(self._file_pattern)
+        except re.error:
+            self._send_error(f'Regex string \"{self._file_pattern}\" is not a valid regex. '
+                             f'Please try again.')
+            return False
+
+        if not self._input_path or not os.path.isdir(self._input_path):
+            self._send_error(f'Input path \"{self._input_path}\" is not a valid path. '
+                             f'Please try again.')
+            return False
+
+        if not self._output_path or not os.path.isdir(self._output_path):
+            self._send_error(f'Output path \"{self._output_path}\" is not a valid path. '
+                             f'Please try again.')
+            return False
+
+        try:
+            self._follow_depth = int(self._follow_depth)
+        except ValueError:
+            self._send_error(f'Depth value \"{self._follow_depth}\" is not a valid integer. '
+                             f'Please try again.')
+            return False
+
+        return True
 
     @pyqtSlot()
     def prepare_and_run(self):
@@ -179,6 +188,8 @@ class MultiSlicePlugin(QObject, Extension):
         self._files = self.files_paths
 
         if len(self._files) is 0:
+            self._log_msg('Found 0 files, please try again')
+            self._log_msg('-----')
             return
 
         self._log_msg(f'Found {len(self._files)} files')

@@ -27,6 +27,7 @@ UM.Dialog
     function appendOutput(strList) {
         if (strList.length == 0) {
             outputBox.append("Found 0 files, please try again")
+            outputBox.append("-----")
             return
         }
 
@@ -47,6 +48,7 @@ UM.Dialog
         manager.set_preserve_dirs(preserveDirsCheckBox.checked)
         manager.set_input_path(trimPath(selectInputDirectoryDialog.folder.toString()))
         manager.set_output_path(trimPath(selectOutputDirectoryDialog.folder.toString()))
+        return manager.validate_input
     }
 
     function run() {
@@ -56,11 +58,17 @@ UM.Dialog
     Item {
         Connections {
             target: manager
+
             function onError(msg) {
                 if (errorPopupText.text === "") {
                     errorPopupText.text = msg
                     errorPopup.open()
                 }
+            }
+
+            function onLog(msg) {
+                outputBox.append(msg)
+                outputScroll.updateScroll()
             }
         }
     }
@@ -88,9 +96,8 @@ UM.Dialog
                     font.bold: true
                 }
 
-                TextArea {
+                TextField {
                     id: regexText;
-                    textFormat: TextEdit.PlainText
                     placeholderText: "regex"
                     color: UM.Theme.getColor("text")
 
@@ -158,19 +165,22 @@ UM.Dialog
                         id: followCheckBox
                         text: "Follow directories"
                         checked: false
+                        font.bold: true
                     }
 
                     Label {
                         id: followDepthLabel
                         text: "Max depth (default: 0):"
                         visible: followCheckBox.checked
+                        font.bold: true
                     }
 
-                    TextArea {
+                    TextField {
                         id: followDepthField
                         placeholderText: "depth"
                         visible: followCheckBox.checked
                         color: UM.Theme.getColor("text")
+                        validator: IntValidator {bottom: 0; top: 9;}
 
                         background: Rectangle {
                             color: UM.Theme.getColor("main_background")
@@ -185,6 +195,7 @@ UM.Dialog
                     text: "Preserve directories in output"
                     visible: followCheckBox.checked
                     checked: false
+                    font.bold: true
                 }
             }
 
@@ -198,8 +209,7 @@ UM.Dialog
                         id: checkButton
                         text: "Check files"
                         onClicked: {
-                            applySettings()
-                            appendOutput(manager.files_names)
+                            if (applySettings()) appendOutput(manager.files_names);
                         }
                     }
 
@@ -207,8 +217,7 @@ UM.Dialog
                         id: sliceButton
                         text: "Slice"
                         onClicked: {
-                            applySettings()
-                            run()
+                            if (applySettings()) run();
                         }
                     }
                 }
@@ -227,21 +236,13 @@ UM.Dialog
                     ScrollBar.vertical.increase()
                 }
 
-                Connections {
-                    target: manager
-                    function onLog(msg) {
-                        outputBox.append(msg)
-                        outputScroll.updateScroll()
-                    }
-                }
-
                 TextArea {
                     id: outputBox
                     readOnly: true
                     textFormat: TextEdit.PlainText
                     text: "Output log\n-----"
                     color: UM.Theme.getColor("text")
-                    wrapMode: TextEdit.WordWrap
+                    wrapMode: TextEdit.Wrap
 
                     background: Rectangle {
                         color: UM.Theme.getColor("main_background")
@@ -261,8 +262,12 @@ UM.Dialog
             title: "Select directory"
             selectExisting: true
             selectFolder: true
-            folder: StandardPaths.HomeLocation
+
             onAccepted: {
+                outputDirChoiceRowText.text = trimPath(selectOutputDirectoryDialog.folder.toString())
+            }
+
+            onRejected: {
                 outputDirChoiceRowText.text = trimPath(selectOutputDirectoryDialog.folder.toString())
             }
         }
@@ -275,8 +280,12 @@ UM.Dialog
             title: "Select directory"
             selectExisting: true
             selectFolder: true
-            folder: StandardPaths.HomeLocation
+
             onAccepted: {
+                inputDirChoiceRowText.text = trimPath(selectInputDirectoryDialog.folder.toString())
+            }
+
+            onRejected: {
                 inputDirChoiceRowText.text = trimPath(selectInputDirectoryDialog.folder.toString())
             }
         }
