@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Optional, List
+from typing import Optional, List, Union
 from pathlib import Path
 
 from UM.i18n import i18nCatalog
@@ -77,14 +77,14 @@ class MultiSlicePlugin(QObject, Extension):
 
         # user options
         self._file_pattern = r'.*.stl'
-        self._input_path = ''  # type: Optional[Path, str]
-        self._output_path = ''  # type: Optional[Path, str]
+        self._input_path = ''  # type: Union[Path, str]
+        self._output_path = ''  # type: Union[Path, str]
         self._follow_dirs = False
         self._follow_depth = 0  # type: Optional[int]
         self._preserve_dirs = False
 
         self._files = []
-        self._current_model = ''  # type: Optional[Path, str]
+        self._current_model = ''  # type: Union[Path, str]
         self._current_model_suffix = ''
         self._current_model_name = ''
         self._current_model_url = None  # type: Optional[QUrl]
@@ -113,6 +113,15 @@ class MultiSlicePlugin(QObject, Extension):
         """
         self.error.emit(msg)
 
+    # signal to send when processing is odne
+    processingDone = pyqtSignal(name='processingDone')
+
+    def _signal_done(self) -> None:
+        """
+        Signals to the frontend that the current session is finished
+        """
+        self.processingDone.emit()
+
     def _create_view(self) -> None:
         """
         Create plugin view dialog
@@ -131,7 +140,7 @@ class MultiSlicePlugin(QObject, Extension):
 
         self._view.show()
 
-    def _get_files(self, abs_paths: bool = False) -> List[Optional[Path, str]]:
+    def _get_files(self, abs_paths: bool = False) -> List[Union[Path, str]]:
         """
         Recursively collect files from input dir relative to follow depth
 
@@ -271,6 +280,7 @@ class MultiSlicePlugin(QObject, Extension):
         if len(self._files) is 0:
             self._log_msg('Found 0 files, please try again')
             self._log_msg('-----')
+            self._signal_done()
             return
 
         self._log_msg(f'Found {len(self._files)} files')
@@ -284,6 +294,8 @@ class MultiSlicePlugin(QObject, Extension):
 
         # run next model when file is written
         self._write_done.connect(self._run_next)
+
+        self._clear_models()
 
         self._run()
 
@@ -326,7 +338,9 @@ class MultiSlicePlugin(QObject, Extension):
             self._log_msg('Found no more models. Done!')
             # reset signal connectors once all models are done
             self.__reset()
+            self._signal_done()
             return
+
         self._load_model_and_slice()
 
     def _load_model_and_slice(self) -> None:
@@ -344,7 +358,7 @@ class MultiSlicePlugin(QObject, Extension):
         """
         CuraApplication.getInstance().deleteAll()
 
-    def _slice(self):
+    def _slice(self) -> None:
         """
         Begin slicing models on build plate and wait for backendStateChange to signal state 3,
         i.e. processing done
@@ -391,3 +405,12 @@ class MultiSlicePlugin(QObject, Extension):
         CuraApplication.getInstance().fileCompleted.disconnect(self._slice)
         Backend.Backend.backendStateChange.disconnect(self._write_gcode)
         self._write_done.disconnect(self._run_next)
+
+    @pyqtSlot()
+    def stop_multi_slice(self) -> None:
+        """
+        Stop the session currently running
+        """
+        self._log_msg("Cancel signal emitted, stopping Multislice")
+        self.__reset()
+        self._loop.exit()

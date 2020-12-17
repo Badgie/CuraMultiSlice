@@ -7,9 +7,8 @@ Model files are found by the plugin based on an input directory and a regex file
 Every model will be sliced with the settings that are currently applied in the main window of Cura.
 
 ## TODO
-- add cancel button
-- add close button
 - ensure cross platform compatibility
+- sometimes the slicer hangs after slicing is started - is this detectable?
 
 ## Installation
 

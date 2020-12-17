@@ -80,6 +80,12 @@ UM.Dialog
                 outputBox.append(msg)
                 outputScroll.updateScroll()
             }
+
+            // stuff to do when everything is done
+            function onProcessingDone() {
+                sliceButton.visible = true
+                cancelButton.visible = false
+            }
         }
     }
 
@@ -228,8 +234,32 @@ UM.Dialog
                     Button {
                         id: sliceButton
                         text: "Slice"
+                        visible: true
                         onClicked: {
-                            if (applySettings()) run();
+                            if (applySettings()) {
+                                sliceButton.visible = false
+                                cancelButton.visible = true
+                                run();
+                            }
+                        }
+                    }
+
+                    Button {
+                        id: cancelButton
+                        text: "Cancel"
+                        visible: false
+                        onClicked: {
+                            sliceButton.visible = true
+                            cancelButton.visible = false
+                            manager.stop_multi_slice()
+                        }
+                    }
+
+                    Button {
+                        id: closeButton
+                        text: "Close"
+                        onClicked: {
+                            dialog.close()
                         }
                     }
                 }
