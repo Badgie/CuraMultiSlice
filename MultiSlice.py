@@ -166,8 +166,8 @@ class MultiSlicePlugin(QObject, Extension):
 
             except PermissionError:
                 # if we can't read the current step, notify and skip
-                self._log_msg(f'Could not access directory {str(path)}, reason: permission denied. '
-                              f'Skipping.')
+                self._log_msg('Could not access directory {0}, reason: permission denied. '
+                              'Skipping.'.format(str(path)))
                 return
 
         _files(self._file_pattern, self._input_path, 0)
@@ -243,28 +243,28 @@ class MultiSlicePlugin(QObject, Extension):
         try:
             re.compile(self._file_pattern)
         except re.error:
-            self._send_error(f'Regex string \"{self._file_pattern}\" is not a valid regex. '
-                             f'Please try again.')
+            self._send_error('Regex string \"{0}\" is not a valid regex. '
+                             'Please try again.'.format(self._file_pattern))
             return False
 
         # input path should be a valid path
         if type(self._input_path) is str or not self._input_path.is_dir():
-            self._send_error(f'Input path \"{self._input_path}\" is not a valid path. '
-                             f'Please try again.')
+            self._send_error('Input path \"{0}\" is not a valid path. '
+                             'Please try again.'.format(self._input_path))
             return False
 
         # output path should be a valid path
         if type(self._output_path) is str or not self._output_path.is_dir():
-            self._send_error(f'Output path \"{self._output_path}\" is not a valid path. '
-                             f'Please try again.')
+            self._send_error('Output path \"{0}\" is not a valid path. '
+                             'Please try again.'.format(self._output_path))
             return False
 
         # follow depth should be an int
         try:
             self._follow_depth = int(self._follow_depth)
         except ValueError:
-            self._send_error(f'Depth value \"{self._follow_depth}\" is not a valid integer. '
-                             f'Please try again.')
+            self._send_error('Depth value \"{0}\" is not a valid integer. '
+                             'Please try again.'.format(self._follow_depth))
             return False
 
         return True
@@ -283,7 +283,7 @@ class MultiSlicePlugin(QObject, Extension):
             self._signal_done()
             return
 
-        self._log_msg(f'Found {len(self._files)} files')
+        self._log_msg('Found {0} files'.format(len(self._files)))
         self._prepare_model()
 
         # slice when model is loaded
@@ -308,7 +308,7 @@ class MultiSlicePlugin(QObject, Extension):
         if len(self._files) == 0:
             self._current_model = None
         else:
-            self._log_msg(f'{len(self._files)} file(s) to go')
+            self._log_msg('{0} file(s) to go'.format(len(self._files)))
             self._prepare_model()
 
     def _prepare_model(self) -> None:
@@ -347,7 +347,7 @@ class MultiSlicePlugin(QObject, Extension):
         """
         Read .stl file into Cura and wait for fileCompleted signal
         """
-        self._log_msg(f'Loading model {self._current_model_name}')
+        self._log_msg('Loading model {0}'.format(self._current_model_name))
         CuraApplication.getInstance().readLocalFile(self._current_model_url)
         # wait for Cura to signal that it completed loading the file
         self._loop.exec()
@@ -387,8 +387,8 @@ class MultiSlicePlugin(QObject, Extension):
             else:
                 path = self._output_path / file_name
 
-            self._log_msg(f'Writing gcode to file {file_name}')
-            self._log_msg(f'Saving to directory: {str(path)}')
+            self._log_msg('Writing gcode to file {0}'.format(file_name))
+            self._log_msg('Saving to directory: {0}'.format(str(path)))
 
             with path.open(mode='w') as stream:
                 res = PluginRegistry.getInstance().getPluginObject("GCodeWriter").write(stream, [])
