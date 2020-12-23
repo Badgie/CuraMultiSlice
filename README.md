@@ -7,8 +7,7 @@ Model files are found by the plugin based on an input directory and a regex file
 Every model will be sliced with the settings that are currently applied in the main window of Cura.
 
 ## TODO
-- ensure cross platform compatibility
-- sometimes the slicer hangs after slicing is started - is this detectable?
+- output log signals are currently broken under Windows
 
 ## Installation
 
@@ -34,8 +33,12 @@ $ cp plugin.json /path/to/cura/plugins/MultiSlice/MultiSlice
 MultiSlice is now installed, and can be found in the "Extensions" menu item in Cura.
 
 ### Windows
-TBA
+- Download and extract [CuraMultiSlice](https://github.com/Badgie/CuraMultiSlice/archive/master.zip)
+- Locate your Cura installation (usually `C:/Program Files/Ultimaker Cura <VERSION>`)
+    - In this folder, under `plugins`, make a folder `MultiSlice` with a folder of the same name under that, such that `C:/Program Files/Ultimaker Cura <VERSION>/plugins/MultiSlice/MultiSlice` exists.
+- From CuraMultiSlice, copy `__init__.py`, `MultiSlice.py`, `MultiSliceView.qml`, and `plugin.json` to `C:/Program Files/Ultimaker Cura <VERSION>/plugins/MultiSlice/MultiSlice`
 
+CuraMultiSlice should now be installed.
 
 ## Usage
 To access MultiSlice navigate to `Extensions > MultiSlice > Configure and run` in the toolbar menu. The following dialog should pop up:
