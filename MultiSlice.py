@@ -1,7 +1,7 @@
 import os
 import re
 from typing import Optional, List, Union
-from pathlib import Path
+from pathlib import PurePath as Path, Path as Path_
 
 from UM.i18n import i18nCatalog
 from UM.Extension import Extension
@@ -113,7 +113,7 @@ class MultiSlicePlugin(QObject, Extension):
         """
         self.error.emit(msg)
 
-    # signal to send when processing is odne
+    # signal to send when processing is done
     processingDone = pyqtSignal(name='processingDone')
 
     def _signal_done(self) -> None:
@@ -154,7 +154,7 @@ class MultiSlicePlugin(QObject, Extension):
                 return
 
             try:
-                for d in path.iterdir():
+                for d in Path_(path).iterdir():
 
                     # if we reached a directory, do recursive call
                     if d.is_dir():
@@ -248,13 +248,13 @@ class MultiSlicePlugin(QObject, Extension):
             return False
 
         # input path should be a valid path
-        if type(self._input_path) is str or not self._input_path.is_dir():
+        if type(self._input_path) is str or not Path_(self._input_path).is_dir():
             self._send_error('Input path \"{0}\" is not a valid path. '
                              'Please try again.'.format(self._input_path))
             return False
 
         # output path should be a valid path
-        if type(self._output_path) is str or not self._output_path.is_dir():
+        if type(self._output_path) is str or not Path_(self._output_path).is_dir():
             self._send_error('Output path \"{0}\" is not a valid path. '
                              'Please try again.'.format(self._output_path))
             return False
@@ -352,7 +352,8 @@ class MultiSlicePlugin(QObject, Extension):
         # wait for Cura to signal that it completed loading the file
         self._loop.exec()
 
-    def _clear_models(self) -> None:
+    @staticmethod
+    def _clear_models() -> None:
         """
         Clear all models on build plate
         """
@@ -383,14 +384,14 @@ class MultiSlicePlugin(QObject, Extension):
             if self._preserve_dirs:
                 rel_path = self._current_model.relative_to(self._input_path)
                 path = (self._output_path / rel_path).parent / file_name
-                path.parent.mkdir(parents=True, exist_ok=True)
+                Path_(path.parent).mkdir(parents=True, exist_ok=True)
             else:
                 path = self._output_path / file_name
 
             self._log_msg('Writing gcode to file {0}'.format(file_name))
             self._log_msg('Saving to directory: {0}'.format(str(path)))
 
-            with path.open(mode='w') as stream:
+            with Path_(path).open(mode='w') as stream:
                 res = PluginRegistry.getInstance().getPluginObject("GCodeWriter").write(stream, [])
 
             # GCodeWriter notifies success state with bool
