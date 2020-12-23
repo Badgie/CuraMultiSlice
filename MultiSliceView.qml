@@ -1,9 +1,8 @@
 
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Dialogs 1.3
-import QtQuick.Window 2.15
+import QtQuick 2.7
+import QtQuick.Controls 2.2
+import QtQuick.Layouts 1.1
+import QtQuick.Dialogs 1.2
 
 import UM 1.3 as UM
 import Cura 1.1 as Cura
