@@ -1,5 +1,6 @@
 import os
 import re
+import platform
 from typing import Optional, List, Union
 from pathlib import PurePath as Path, Path as Path_
 
@@ -415,3 +416,14 @@ class MultiSlicePlugin(QObject, Extension):
         self._log_msg("Cancel signal emitted, stopping Multislice")
         self.__reset()
         self._loop.exit()
+
+    @pyqtSlot(str)
+    def trim(self, path: str) -> str:
+        """
+        Trims a file object from the frontend. What needs to be trimmed differes for
+        Linux and Windows.
+        """
+        if platform.system() == "Windows":
+            return path.replace('file:///', '')
+        else:
+            return path.replace('file://', '')

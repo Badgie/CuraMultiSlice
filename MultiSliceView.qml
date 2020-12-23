@@ -19,11 +19,6 @@ UM.Dialog
     color: UM.Theme.getColor("main_background");
     margin: screenScaleFactor * 20
 
-    // remove the url bit of the input path - for output formatting
-    function trimPath(path) {
-        return path.replace("file://", "")
-    }
-
     // append a list of strings to the output log - used to print a list of file names
     function appendOutput(strList) {
         // if we don't have any elements, notify and return
@@ -51,8 +46,8 @@ UM.Dialog
         manager.set_follow_dirs(followCheckBox.checked)
         manager.set_follow_depth(followDepthField.text.toString())
         manager.set_preserve_dirs(preserveDirsCheckBox.checked)
-        manager.set_input_path(trimPath(selectInputDirectoryDialog.folder.toString()))
-        manager.set_output_path(trimPath(selectOutputDirectoryDialog.folder.toString()))
+        manager.set_input_path(manager.trim(selectInputDirectoryDialog.folder.toString()))
+        manager.set_output_path(manager.trim(selectOutputDirectoryDialog.folder.toString()))
         return manager.validate_input
     }
 
@@ -313,11 +308,11 @@ UM.Dialog
             selectFolder: true
 
             onAccepted: {
-                outputDirChoiceRowText.text = trimPath(selectOutputDirectoryDialog.folder.toString())
+                outputDirChoiceRowText.text = manager.trim(selectOutputDirectoryDialog.folder.toString())
             }
 
             onRejected: {
-                outputDirChoiceRowText.text = trimPath(selectOutputDirectoryDialog.folder.toString())
+                outputDirChoiceRowText.text = manager.trim(selectOutputDirectoryDialog.folder.toString())
             }
         }
     }
@@ -332,11 +327,11 @@ UM.Dialog
             selectFolder: true
 
             onAccepted: {
-                inputDirChoiceRowText.text = trimPath(selectInputDirectoryDialog.folder.toString())
+                inputDirChoiceRowText.text = manager.trim(selectInputDirectoryDialog.folder.toString())
             }
 
             onRejected: {
-                inputDirChoiceRowText.text = trimPath(selectInputDirectoryDialog.folder.toString())
+                inputDirChoiceRowText.text = manager.trim(selectInputDirectoryDialog.folder.toString())
             }
         }
     }
